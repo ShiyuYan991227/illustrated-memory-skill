@@ -1,130 +1,92 @@
 # Illustrated Memory Skill
 
-**Illustrated Memory** is a reusable workflow that can take **any everyday user-uploaded photograph** and turn it into a consistent hand-painted watercolor / gouache illustrated journal page.
+Illustrated Memory is a reusable Agent/Codex Skill that turns a user-supplied photo into a consistent hand-painted illustrated journal page.
 
-It is designed to work across many kinds of source images, including people, pets, food, streets, buildings, landscapes, travel scenes, interiors, plants, objects, and everyday moments.
+It keeps the uploaded photo as the content source, generates a watercolor/gouache-style illustration from it, writes a short English caption, and composes the final page with the original photo pasted back unchanged.
 
-**photo → visual understanding → watercolor-style illustration → image-specific English caption → deterministic composition**
+## What It Does
 
-The source image content is never hard-coded. The uploaded photograph is always the content source; this repository only locks the **visual style, caption tone, and final layout system**.
+- Analyzes only the visible contents of the source photo
+- Generates one image-specific English caption
+- Guides an image model to create a soft watercolor, gouache, and colored-pencil illustration
+- Uses `scripts/compose.py` to assemble the final page deterministically
+- Preserves the original uploaded photo as real pixels in the lower-right of the final image
 
-## What stays fixed vs. what changes
+## Install
 
-### Fixed
-- watercolor + gouache + colored-pencil picture-book rendering style
-- soft matte palette and handmade pigment texture
-- rough, irregular painted edges that dissolve into paper
-- warm cream paper-texture background with no decorative scrapbook ornaments
-- large centered illustration
-- untouched source photo placed at the lower-right with slight overlap
-- short, observational English caption in muted sage-green handwriting
+Copy this skill folder into your Codex skills directory:
 
-### Dynamic for every uploaded photo
-- subject(s)
-- scene and composition
-- dominant colors
-- lighting and shadow pattern
-- atmosphere
-- caption wording
-
-The model must never insert a cat, tree, courtyard, green foliage, or any other object merely because it appeared in an example or style reference.
-
-## Core design principle
-
-The **original uploaded photo remains unchanged** in the final layout. Only the main illustration layer is generated / stylized. The final journal page should be assembled deterministically with code so the source photo can be pasted back as its original pixels.
-
-## Visual system
-
-- nostalgic independent picture-book / illustrated-journal feeling
-- gouache + transparent watercolor + colored-pencil texture
-- visible dry-brush marks and pigment granulation
-- natural, muted, matte colors derived from each source photo
-- irregular painted edges that dissolve into paper
-- warm cream aged-paper texture, with **no decorative scrapbook elements**
-- large centered illustration
-- untouched source photo lower-right with subtle overlap
-- short observational English caption in muted sage-green handwriting
-
-`assets/style-reference.png` is a **style-only** reference. Its depicted subject matter must not influence the content of a new illustration.
-
-## Repository structure
-
-```text
-illustrated-memory-skill/
-├── SKILL.md
-├── README.md
-├── assets/
-│   └── style-reference.png
-├── config/
-│   └── style.yaml
-├── prompts/
-│   ├── caption.md
-│   ├── photo-analysis.md
-│   └── style-lock.md
-├── scripts/
-│   └── compose.py
-├── tests/
-│   └── test_compose.py
-└── requirements.txt
+```bash
+mkdir -p ~/.codex/skills
+cp -R illustrated-memory-skill ~/.codex/skills/illustrated-memory
 ```
 
-## How an agent should use it
+Install the Python dependencies used by the compositor:
 
-1. Receive **any user photo** as the source image.
-2. Analyze only what is visibly present using `prompts/photo-analysis.md`.
-3. Generate one image-specific English caption with `prompts/caption.md`.
-4. Style-transfer the source photo using `prompts/style-lock.md`. If the host supports a second image reference, use `assets/style-reference.png` for **rendering style only**, never for scene content.
-5. Save the generated illustration layer.
-6. Compose the final page using the generated illustration plus the **original uploaded image file**:
+```bash
+python -m pip install -r ~/.codex/skills/illustrated-memory/requirements.txt
+```
+
+Restart Codex if your environment only scans skills at startup.
+
+## Use
+
+Ask for the skill by name, for example:
+
+```text
+Use $illustrated-memory on this photo.
+```
+
+The agent should:
+
+1. Analyze the uploaded image with `references/photo-analysis.md`.
+2. Write a short caption with `references/caption.md`.
+3. Generate the illustration using `references/style-lock.md`.
+4. Run `scripts/compose.py` with the generated illustration and the untouched original photo.
+
+Manual compositor example:
 
 ```bash
 python scripts/compose.py \
   --illustration /path/to/generated-illustration.png \
-  --original /path/to/user-uploaded-photo.jpg \
-  --caption "<caption generated from this photo>" \
+  --original /path/to/original-photo.jpg \
+  --caption "Late sunlight rests on the quiet table." \
+  --output outputs/final.png
+```
+
+Optional:
+
+```bash
+python scripts/compose.py \
+  --illustration /path/to/generated-illustration.png \
+  --original /path/to/original-photo.jpg \
+  --caption "Late sunlight rests on the quiet table." \
   --font /path/to/Handlee-Regular.ttf \
   --output outputs/final.png
 ```
 
-## Examples of valid inputs
+## Structure
 
-The same skill can process, for example:
+```text
+illustrated-memory/
+|-- SKILL.md
+|-- agents/
+|   `-- openai.yaml
+|-- config/
+|   `-- style.yaml
+|-- references/
+|   |-- caption.md
+|   |-- photo-analysis.md
+|   `-- style-lock.md
+|-- scripts/
+|   `-- compose.py
+|-- tests/
+|   `-- test_compose.py
+`-- requirements.txt
+```
 
-- a portrait in window light
-- a dog running on a beach
-- a bowl of noodles on a table
-- an old building on a rainy street
-- mountains seen through a train window
-- flowers beside a notebook
-- a night market
-- a family travel snapshot
+## Notes
 
-The output should preserve the uploaded photo's actual content and composition while translating only its rendering into the locked watercolor illustration system.
+The `assets/` folder is available for an optional `style-reference.png`. If you add one, the agent should use it only as a style reference and never copy its subject matter into new illustrations.
 
-## Caption behavior
-
-The caption is generated anew for each photo. It should describe a small visible moment rather than name a fixed subject or repeat a template. For example, depending on the source image, it might focus on light, movement, weather, texture, a gesture, an object, or a quiet environmental detail.
-
-## Font recommendation
-
-For a stable visual identity, render the caption deterministically instead of asking the image model to draw text. Recommended open handwriting fonts:
-
-1. **Handlee** — first choice; casual and light
-2. **Kalam** — slightly stronger handwritten character
-3. **Caveat** — looser and more expressive
-
-Font files are intentionally not bundled in this repository. Supply a local `.ttf` / `.otf` using `--font`.
-
-## Privacy / GitHub note
-
-Do not commit user source photos by default. Keep them under a gitignored directory such as `private-inputs/`. The bundled style reference exists only to communicate visual rendering style.
-
-## Design lock
-
-If results drift, do **not** rewrite the skill around one successful example photo. Adjust only:
-
-- photo-specific scene understanding
-- caption wording
-- local color adaptation
-
-Keep the rendering style, rough-edge behavior, paper background, original-photo preservation rule, layout, and caption tone stable. That is what makes images from very different source photos feel like pages from the same illustrated journal.
+Do not commit user photos by default. Keep private inputs under a gitignored folder such as `private-inputs/`.

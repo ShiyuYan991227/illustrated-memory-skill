@@ -1,0 +1,31 @@
+name: illustrated-memory
+version: 1.0.0
+canvas:
+  width: 1536
+  height: 2048
+background:
+  base_rgb: [241, 231, 205]
+illustration:
+  width_ratio: 0.72
+  max_height_ratio: 0.66
+  top_ratio: 0.06
+  rough_edge: true
+  rough_edge_px: 18
+  feather_px: 7
+original:
+  width_ratio: 0.28
+  right_margin_ratio: 0.045
+  bottom_margin_ratio: 0.05
+  overlap_ratio: 0.055
+  border_ratio: 0.005
+  border_rgb: [246, 241, 226]
+caption:
+  x_ratio: 0.08
+  y_ratio: 0.78
+  font_size_ratio: 0.034
+  fill_rgb: [104, 127, 78]
+  line_spacing_ratio: 0.009
+  preferred_fonts:
+    - Handlee
+    - Kalam
+    - Caveat

@@ -1,0 +1,10 @@
+interface:
+  display_name: "Illustrated Memory"
+  short_description: "Turn photos into nostalgic illustrated journal pages."
+policy:
+  products:
+    - "chatgpt"
+    - "codex"
+    - "api"
+    - "atlas"
+  allow_implicit_invocation: true

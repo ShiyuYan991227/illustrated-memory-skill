@@ -1,94 +1,63 @@
 ---
 name: illustrated-memory
-description: Turn a user photo into a consistent nostalgic hand-painted journal page: analyze the photo, create a picture-book style interpretation, write a short English caption, and deterministically compose the illustration with the untouched original photo on a textured cream paper background.
+description: Transform a user-supplied photo into a nostalgic illustrated journal page with a watercolor-style main illustration, short English caption, and deterministic layout that preserves the original photo unchanged.
+metadata:
+  short-description: Turn photos into illustrated journal pages
 ---
 
 # Illustrated Memory
 
-Use this skill when the user wants a photo transformed into the established "Illustrated Memory" visual system: a gentle hand-painted picture-book interpretation, a short observational English caption, and a fixed journal-page composition that also preserves the original photo unchanged.
+Use this skill when the user wants a photo turned into the Illustrated Memory visual system: a gentle hand-painted picture-book interpretation, a short observational English caption, and a fixed journal-page composition that includes the untouched original photo.
 
-## Non-negotiable rules
+## Required Outcome
 
-1. The original photo is source-of-truth. Never regenerate, repaint, recolor, retouch, crop, extend, or otherwise alter it for the final original-photo layer.
-2. Style conversion applies only to the generated illustration layer.
-3. Final layout must be deterministic whenever local image composition is available. Do not ask the image model to regenerate the entire final poster if a compositor can place the original image as pixels.
-4. Background is texture only: warm cream/beige paper with subtle fibers, grain, and faint aging. No stickers, stamps, tape, flowers, notebook holes, postcards, decorative patterns, or scrapbook ornaments.
-5. The main illustration sits prominently near the visual center and uses irregular painted edges. It must not look like a clean rectangular photo card or Polaroid.
-6. The original photo is placed at the lower-right, kept intact, scaled proportionally, and may overlap the illustration slightly.
-7. Caption is short English, observational, gentle, and specific to the visible moment. Avoid motivational quotes and generic philosophy.
-8. Caption typography should feel like casual green pencil/watercolor handwriting, not calligraphy and not a polished digital script.
+Create a final portrait journal page with:
+
+- a warm cream paper-texture background
+- a large watercolor/gouache/colored-pencil illustration based on the uploaded photo
+- the original photo pasted intact in the lower-right, scaled proportionally
+- a short English caption in a muted sage-green handwriting style
+
+The final page should feel quiet, handmade, airy, and consistent across very different source photos.
+
+## Core Constraints
+
+- Treat the original photo as the source of truth. Do not regenerate, repaint, recolor, retouch, crop, extend, or otherwise alter the original-photo layer.
+- Apply style conversion only to the generated illustration layer.
+- Compose the final page deterministically with `scripts/compose.py` whenever local image composition is available.
+- Do not ask the image model to regenerate the entire final poster when a compositor can paste the original photo pixels.
+- Keep the background texture-only: no stickers, stamps, tape, decorative flowers, notebook holes, postcards, or scrapbook ornaments.
+- Keep the main illustration visually dominant, centered, and organically edged. It should not look like a clean rectangular photo card.
+- Write one short, concrete, image-specific English caption. Avoid motivational quotes, generic philosophy, and exaggerated sentimentality.
 
 ## Workflow
 
-### 1. Analyze the source photo
+1. Analyze the source photo using [references/photo-analysis.md](references/photo-analysis.md). Mention only what is visibly supported.
+2. Write one caption using [references/caption.md](references/caption.md).
+3. Generate the illustration layer from the source photo using [references/style-lock.md](references/style-lock.md).
+4. If the image tool supports a separate style reference and `assets/style-reference.png` exists, use it only for rendering style. Never copy its subject matter into the new image.
+5. Check the illustration before compositing. Regenerate if the subject, pose, layout, lighting, or major objects drift materially.
+6. Compose the final page with:
 
-Extract only what is visually supported:
-- main subject(s)
-- environment and spatial structure
-- lighting direction and distinctive light/shadow pattern
-- one small moment worth remembering
-- dominant natural colors
-- emotional tone
+```bash
+python scripts/compose.py \
+  --illustration /path/to/generated-illustration.png \
+  --original /path/to/user-photo.jpg \
+  --caption "A short caption from this specific photo." \
+  --output outputs/final.png
+```
 
-Do not invent objects, weather, time of day, or actions that are not supported by the image.
+Pass `--font /path/to/Handlee-Regular.ttf` or another handwriting font when available. If no font is supplied, the script uses a system fallback.
 
-### 2. Write the caption
+## Quality Check
 
-Use `prompts/caption.md`.
+Before returning the image, confirm that:
 
-Generate one caption only. The caption should usually be 7–16 words. Prefer concrete sensory observations: light, shadow, breeze, leaves, movement, animals, streets, or small everyday details.
+- the illustration is the largest visual element
+- painted edges are irregular and organic
+- the original photo appears in the lower-right and is unchanged aside from proportional scaling
+- the original photo slightly overlaps the illustration
+- the caption is English, short, and visually balanced
+- the page has no decorative scrapbook elements
 
-### 3. Generate the illustration layer
-
-Use the source photo as the content reference and `assets/style-reference.png` as the style reference when the host image tool supports multiple references. If only one reference is supported, prioritize the source photo and apply the style via `prompts/style-lock.md`.
-
-Preserve:
-- composition
-- subject identity and pose
-- spatial relationships
-- major objects
-- lighting direction
-- key visible details
-
-Transform only the rendering style.
-
-### 4. Verify the illustration before compositing
-
-Reject/regenerate if any of the following occur:
-- major subject is missing or changed
-- subject pose changes substantially
-- architecture/layout changes materially
-- extra decorative objects appear
-- image becomes anime, glossy digital art, photorealistic, or vector-like
-- illustration has a clean photo-like rectangular border
-- colors become neon/high-saturation
-
-### 5. Compose the final page deterministically
-
-Use `scripts/compose.py` whenever possible.
-
-Recommended layout defaults:
-- portrait canvas: 1536 × 2048 (3:4)
-- illustration width: 72% of canvas
-- illustration centered horizontally, upper-middle vertically
-- original width: 28% of canvas
-- original lower-right, overlapping illustration by about 4–8% of canvas width
-- caption below/left of illustration, avoiding the original-photo layer
-- background: generated subtle cream paper texture only
-
-The original layer must be pasted from the original file itself. Never use an image-model reproduction of the original.
-
-### 6. Final quality check
-
-Confirm:
-- main illustration is visually dominant and centered
-- painted edges are rough/organic, not a sharp card frame
-- original photo is present and unchanged
-- original slightly overlaps the generated illustration
-- caption is English and visually balanced
-- no unwanted scrapbook decorations
-- page feels airy, quiet, handmade, and consistent with `assets/style-reference.png`
-
-## Output
-
-Return the final composed image. If the host supports it, also keep the intermediate illustration layer and caption text so the user can iterate on either one independently.
+Return the final composed image. When useful, also keep the intermediate illustration layer and caption text so the user can iterate on them independently.
